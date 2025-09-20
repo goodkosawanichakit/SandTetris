@@ -15,8 +15,8 @@ class Block {
 }
 
 class Board {
-  public int row = 20;
-  public int col = 10;
+  public int row = 200;
+  public int col = 100;
   public int board[] = new int[row * col];
   
   private char colorChar(int val) {
