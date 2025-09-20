@@ -1,53 +1,50 @@
 import java.util.Scanner;
 
-enum Color {NONE, RED, GREEN, BLUE, YELLOW};
-
-class Position {
+class Block {
   public int row;
   public int col;
-  Position(int r, int c) {this.row = r; this.col = c;}
-}
+  public int color;
 
-class Block {
-  public Position pos;
-  public Color color;
-  Block(int r, int c, Color color) {
-    pos = new Position(r, c);
+  public Block(int r, int c, int color) {
+    this.row = r; this.col = c;
     this.color = color;
   }
-  int getR() {return pos.row;}
-  int getC() {return pos.col;}
+
+  int getR() {return this.row;}
+  int getC() {return this.col;}
 }
 
 class Board {
-  private int row = 20;
-  private int col = 10;
-  public Block board[] = new Block[row * col];
+  public int row = 20;
+  public int col = 10;
+  public int board[] = new int[row * col];
+  
+  private char colorChar(int val) {
+    switch (val) {
+      case 1: return 'R'; 
+      case 2: return 'G';
+      case 3: return 'B'; 
+      case 4: return 'Y'; 
+      default: return '.';
+    }
+  }
 
   synchronized void printBoard() {
-    System.out.print("\033[H\033[2J"); 
-    System.out.flush();
+    StringBuilder sb = new StringBuilder();
     for (int i = 0; i < board.length; i++) {
-      if (board[i].color == Color.NONE)
-        System.out.print('.');
-      else if (board[i].color == Color.RED)
-        System.out.print('R');
-      else if (board[i].color == Color.GREEN)
-        System.out.println('G');
-      else if (board[i].color == Color.BLUE)
-        System.out.println('B');
-      else if (board[i].color == Color.YELLOW)
-        System.out.println('Y');
-      if (i % col == col - 1)
-        System.out.println(); 
-    }  
+      sb.append(colorChar(board[i]));
+      if (i % col == col - 1) sb.append('\n');
+    }
+    System.out.print("\033[H\033[2J");
+    System.out.flush();
+    System.out.print(sb.toString());
   }
 
   synchronized void updatePhysics() {
     for (int i = ((row - 1) * col) - 1; i >= 0; i--) {
-      if (board[i] != null && board[i + col] == null) {
+      if (board[i] != 0 && board[i + col] == 0) {
         board[i + col] = board[i];
-        board[i] = null;
+        board[i] = 0;
       }
     }
   }
@@ -56,9 +53,8 @@ class Board {
 public class Main {
   public static void main(String args[]) throws InterruptedException {
     Board board = new Board();
-    Block red = new Block(6, 1, Color.RED);
-    board.board[red.getC() * red.getR()] = red;
-
+    Block red = new Block(0, 6, 1);
+    board.board[red.getR() * board.col + red.getC() - 1] = red.color;
     Thread physicsThread = new Thread(() -> {
       try {
         while (true) {
