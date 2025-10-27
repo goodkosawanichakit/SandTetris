@@ -33,7 +33,7 @@ public abstract class Shape {
     this.isActive = false;
   }
 
-  public void moveDown() {
+  public synchronized void moveDown() {
     for (Block block: blocks) {
       block.row++;
     }
