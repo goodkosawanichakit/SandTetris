@@ -22,7 +22,7 @@ public class Board {
     }
   }
 
-  synchronized public void printBoard() {
+  public synchronized void printBoard() {
     // Create a temporary board for rendering
     int[] displayBoard = board.clone();
     
@@ -48,7 +48,7 @@ public class Board {
     System.out.print(sb.toString());
   }
 
-  synchronized public void updatePhysics() {
+  public synchronized void updatePhysics() {
     List<Shape> shapesToRemove = new ArrayList<>();
     
     for (Shape shape : activeShapes) {
@@ -91,10 +91,14 @@ public class Board {
     
     // Remove landed shapes from active list
     activeShapes.removeAll(shapesToRemove);
-  }
 
+    if (activeShapes.isEmpty()) {
+      spawnRandomShape();
+    }
+  }
+  
   // Spawn a random shape at the top
-  synchronized public void spawnRandomShape() {
+  public void spawnRandomShape() {
     int startCol = col / 2;
     Shape newShape = createRandomShape(0, startCol);
     activeShapes.add(newShape);
@@ -102,15 +106,74 @@ public class Board {
   
   private Shape createRandomShape(int row, int col) {
     int shapeType = random.nextInt(7);
+    int color = random.nextInt(4) + 1;
     switch (shapeType) {
-      case 0: return new I(row, col);
-      case 1: return new O(row, col);
-      case 2: return new T(row, col);
-      case 3: return new L(row, col);
-      case 4: return new J(row, col);
-      case 5: return new S(row, col);
-      case 6: return new Z(row, col);
-      default: return new T(row, col);
+      case 0: return new I(row, col, color);
+      case 1: return new O(row, col, color);
+      case 2: return new T(row, col, color);
+      case 3: return new L(row, col, color);
+      case 4: return new J(row, col, color);
+      case 5: return new S(row, col, color);
+      case 6: return new Z(row, col, color);
+      default: return new T(row, col, color);
+    }
+  }
+
+  private Shape getActiveShape() {
+    for (Shape s : activeShapes) {
+      if (s.isActive()) return s;
+    }
+    return null;
+  }
+
+ public synchronized void controlMove(int direction) {
+    Shape active = getActiveShape();
+    if (active == null) return; // ไม่มีตัวให้ขยับ
+
+    // 1. สร้าง Flag เช็กว่าขยับได้ไหม
+    boolean canMoveHorizontal = true;
+
+    // 2. Loop เช็กทุกก้อน Block ใน Shape นั้น
+    for (Block block : active.getBlocks()) {
+      int nextCol = block.col + direction; // ตำแหน่งคอลัมน์ใหม่ที่จะไป
+      int currentRow = block.row;
+
+      // --- ทำการเช็ก 3 อย่าง ---
+
+      // CHECK 1: ชนขอบซ้ายหรือไม่?
+      if (nextCol < 0) {
+        canMoveHorizontal = false;
+        break; // หยุดเช็ก (เจอตัวชนแล้ว)
+      }
+
+      // CHECK 2: ชนขอบขวาหรือไม่?
+      if (nextCol >= col) { // 'col' คือความกว้าง (10), index ที่ valid คือ 0-9
+        canMoveHorizontal = false;
+        break; // หยุดเช็ก
+      }
+
+      // CHECK 3: ชนบล็อกอื่นที่ค้างอยู่หรือไม่?
+      // (เช็กเฉพาะบล็อกที่อยู่บนกระดานแล้วเท่านั้น)
+      if (currentRow >= 0) { 
+        int nextIndex = currentRow * col + nextCol;
+        // เช็กว่า index ไม่ล้น และ ช่องนั้นมีบล็อกอยู่ ( != 0 )
+        if (nextIndex >= 0 && nextIndex < board.length && board[nextIndex] != 0) {
+          canMoveHorizontal = false;
+          break; // หยุดเช็ก
+        }
+      }
+    } // สิ้นสุด for loop
+
+    // 3. ถ้าเช็กทุกก้อนแล้ว "canMoveHorizontal" ยังเป็น true = ขยับได้
+    if (canMoveHorizontal) {
+      active.moveHorizontal(direction);
+    }
+  }
+
+  public synchronized void controlRotate() {
+    Shape active = getActiveShape();
+    if (active != null) {
+      active.rotate();
     }
   }
 }

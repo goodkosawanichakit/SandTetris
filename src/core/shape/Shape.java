@@ -1,7 +1,6 @@
 package core.shape;
 
 import core.Block;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,15 +11,15 @@ public abstract class Shape {
   protected int centerCol;
   protected boolean isActive; // true = falling, false = landed
   
-  public Shape(int startRow, int startCol) {
+  public Shape(int startRow, int startCol, int color) {
     this.centerRow = startRow;
     this.centerCol = startCol;
     this.blocks = new ArrayList<>();
     this.isActive = true;
-    initializeBlocks();
+    initializeBlocks(color);
   }
 
-  protected abstract void initializeBlocks();
+  protected abstract void initializeBlocks(int color);
 
   public List<Block> getBlocks() {
     return blocks;

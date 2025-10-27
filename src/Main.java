@@ -3,7 +3,6 @@ import core.Board;
 public class Main {
   public static void main(String args[]) throws InterruptedException {
     Board board = new Board();
-    
     Thread physicsThread = new Thread(() -> {
       try {
         while (true) {
@@ -22,23 +21,23 @@ public class Main {
       } catch (InterruptedException e) {}
     });
 
-    Thread generateShape = new Thread(() -> {
-      try {
-        while (true) {
-          board.spawnRandomShape();
-          Thread.sleep(2000);
-        }
-      } catch (InterruptedException e) {}
-    });
-
     Thread inputThread = new Thread(() -> {
       try {
         java.util.Scanner sc = new java.util.Scanner(System.in);
-          while (true) {
-            String line = sc.nextLine();
-            if (line.equals("q")) {
-              System.out.println("Quitting...");
-              System.exit(0);
+        while (true) {
+          String line = sc.nextLine();
+          if (line.equals("q")) {
+            System.out.println("Quitting...");
+            System.exit(0);
+          }
+          if (line.equals("a")) { // ขยับซ้าย
+            board.controlMove(-1); 
+          }
+          if (line.equals("d")) { // ขยับขวา
+            board.controlMove(1);
+          }
+          if (line.equals("w")) { // หมุน
+            board.controlRotate();
           }
         }
       } catch (Exception e) {}
@@ -47,7 +46,6 @@ public class Main {
     physicsThread.start();
     renderThread.start();
     inputThread.start();
-    generateShape.start();
   }
 }
 
