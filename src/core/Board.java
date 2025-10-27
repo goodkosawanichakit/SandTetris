@@ -7,7 +7,7 @@ public class Board {
   public int row = 20;
   public int col = 10;
   public int board[] = new int[row * col];
-  private Shape activeShape = null;
+  public Shape activeShape = null;
   private final Random random = new Random();
   
   private char colorChar(int val) {
