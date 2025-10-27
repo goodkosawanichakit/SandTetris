@@ -1,7 +1,9 @@
 import core.Board;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import javax.swing.JFrame;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.JFrame; // <--- Import เพิ่ม
 import ui.GamePanel;
 
 public class Main {
@@ -25,15 +27,23 @@ public class Main {
       @Override
       public void keyPressed(KeyEvent e) {
         int key = e.getKeyCode();
-
-        if (key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) {
-          board.controlMove(-1); //
-        }
-        if (key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) {
-          board.controlMove(1); //
-        }
-        if (key == KeyEvent.VK_W || key == KeyEvent.VK_UP) {
-          board.controlRotate(); //
+        
+        if (board.isGameOver) {
+          // ถ้าแพ้อยู่: กด ENTER เพื่อเริ่มใหม่
+          if (key == KeyEvent.VK_ENTER) {
+            board.resetGame();
+          }
+        } else {
+          // ถ้ายังไม่แพ้: ก็ควบคุมตามปกติ
+          if (key == KeyEvent.VK_A || key == KeyEvent.VK_LEFT) {
+            board.controlMove(-1); //
+          }
+          if (key == KeyEvent.VK_D || key == KeyEvent.VK_RIGHT) {
+            board.controlMove(1); //
+          }
+          if (key == KeyEvent.VK_W || key == KeyEvent.VK_UP) {
+            board.controlRotate(); //
+          }
         }
         
         // (เสริม) กด S หรือ ลูกศรล่าง เพื่อ "ทิ้งตัว" (Hard Drop)
@@ -44,17 +54,46 @@ public class Main {
       }
     });
 
+    frame.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mousePressed(MouseEvent e) {
+        // ถ้าแพ้อยู่ และ คลิกซ้าย (BUTTON1)
+        if (board.isGameOver && e.getButton() == MouseEvent.BUTTON1) {
+          board.resetGame();
+        }
+      }
+    });
+
     // 5. แสดงหน้าต่าง
     frame.setVisible(true);
 
     // 6. (แทนที่ physicsThread/renderThread) สตาร์ท Game Loop
     Thread gameLoopThread = new Thread(() -> {
+      final int TARGET_FPS = 60;
+      final long FRAME_TIME = 1000 / TARGET_FPS;
+      final int PHYSICS_SPEED = 200;
+      long lastPhysicsUpdate = System.currentTimeMillis();
       try {
+        // Loop นี้จะ "ไม่ตาย" แม้จะ Game Over
         while (true) {
-          board.updatePhysics(); // 1. อัปเดต Logic
-          panel.repaint();     // 2. สั่งวาดจอใหม่ (เรียก paintComponent)
-          
-          Thread.sleep(200); //
+          long startTime = System.currentTimeMillis();
+
+          // 2. อัปเดต Physics (เฉพาะเมื่อถึงเวลา และยังไม่แพ้)
+          if (board.isGameRunning() && (System.currentTimeMillis() - lastPhysicsUpdate > PHYSICS_SPEED)) {
+            board.updatePhysics(); //
+            lastPhysicsUpdate = System.currentTimeMillis();
+          }
+
+          // 3. วาดภาพ (ทำทุกเฟรม)
+          panel.repaint();
+
+          // 4. คำนวณเวลา Sleep เพื่อให้ได้ 60 FPS
+          long elapsedTime = System.currentTimeMillis() - startTime;
+          long sleepTime = FRAME_TIME - elapsedTime;
+
+          if (sleepTime > 0) {
+            Thread.sleep(sleepTime);
+          }
         }
       } catch (InterruptedException e) {}
     });

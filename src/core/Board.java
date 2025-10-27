@@ -1,15 +1,17 @@
 package core;
 
 import core.shape.*;
+import java.util.Arrays;
 import java.util.Random;
 
 public class Board {
   public int row = 20;
   public int col = 10;
   public int board[] = new int[row * col];
+  public boolean isGameOver = false;
   public Shape activeShape = null;
   private final Random random = new Random();
-  
+
   private char colorChar(int val) {
       return switch (val) {
           case 1 -> 'R';
@@ -104,10 +106,29 @@ public class Board {
   }
 
   public synchronized void controlRotate() {
-    Shape active = activeShape;
-    if (active != null) {
-      active.rotate();
+    if (activeShape == null) return;
+    
+    // 1. "ลองหมุน"
+    activeShape.rotate(); //
+
+    // 2. "เช็กว่าปลอดภัยไหม"
+    if (isPositionValid(activeShape)) {
+      // ปลอดภัย: จบการทำงาน (ปล่อยให้หมุนไป)
+      return;
     }
+
+    // 3. "ไม่ปลอดภัย!" (หมุนแล้วชน) 
+    // เราต้อง "หมุนกลับ"
+    // การหมุน 90 องศา (ทวนเข็ม) 3 ครั้ง = หมุน 270 องศา (ทวนเข็ม)
+    // ... ซึ่งเท่ากับหมุน 90 องศา (ตามเข็ม)
+    // นี่คือการ "Undo" การหมุนในข้อ 1 ครับ
+    
+    // หมุนกลับครั้งที่ 1
+    activeShape.rotate(); 
+    // หมุนกลับครั้งที่ 2
+    activeShape.rotate();
+    // หมุนกลับครั้งที่ 3 (กลับสู่ท่าเดิม)
+    activeShape.rotate(); 
   }
 
   public synchronized void updatePhysics() {
@@ -154,11 +175,47 @@ public class Board {
     if (activeShape == null) spawnRandomShape();
   }
   
+  private boolean isPositionValid(Shape shape) {
+    for (Block block : shape.getBlocks()) {
+      int r = block.row;
+      int c = block.col;
+
+      // Check 1: ชนขอบซ้าย/ขวา
+      if (c < 0 || c >= col) {
+        return false;
+      }
+      // Check 2: ชนพื้น
+      if (r >= row) {
+        return false;
+      }
+      // Check 3: (กัน index < 0 ตอนอยู่ข้างบน)
+      if (r < 0) {
+        continue; // ไม่เป็นไรถ้าอยู่เหนือจอ (แค่ยังไม่วาด)
+      }
+      
+      // Check 4: ชนบล็อกที่ล็อคแล้ว
+      if (board[r * col + c] != 0) {
+        return false;
+      }
+    }
+    return true; // ไม่ชนอะไรเลย = Valid
+  }
+
   // Spawn a random shape at the top
   public void spawnRandomShape() {
     int startCol = col / 2;
-    Shape newShape = createRandomShape(0, startCol);
-    activeShape = newShape;
+    Shape newShape = createRandomShape(0, startCol); //
+    
+    // *** นี่คือ Logic เช็ก Game Over ***
+    // เช็กว่าที่ที่จะเกิด (newShape) มัน Valid ไหม
+    if (isPositionValid(newShape)) {
+      // ถ้า Valid (ว่าง) : ก็เกิดตามปกติ
+      activeShape = newShape; //
+    } else {
+      // ถ้าไม่ Valid (ชน!) : แพ้!
+      isGameOver = true;
+      activeShape = null; // ไม่ต้องเกิดตัวใหม่มา
+    }
   }
 
   private void checkAndClearLines() {
@@ -202,5 +259,22 @@ public class Board {
     }
   }
 
+  public synchronized void resetGame() {
+    // 1. ล้างกระดาน (เติม 0 ทั้งหมด)
+    Arrays.fill(board, 0);
+    
+    // 2. เคลียร์ตัวที่ค้าง
+    activeShape = null; 
+    
+    // 3. รีเซ็ตสถานะแพ้
+    isGameOver = false;
+    
+    // 4. (เดี๋ยว Game Loop จะเรียก updatePhysics 
+    //    แล้วมันจะ spawn ตัวใหม่ให้เอง)
+  }
+  
+  public boolean isGameRunning() {
+    return !isGameOver;
+  }
   
 }

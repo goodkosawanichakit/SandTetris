@@ -1,12 +1,11 @@
 // คุณอาจจะต้อง import core.Board; และ core.Block; ถ้าไฟล์นี้อยู่นอก package
 package ui;
-import core.Board;
 import core.Block;
-
-import javax.swing.JPanel;
-import java.awt.Graphics;
+import core.Board;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import javax.swing.JPanel;
 
 public class GamePanel extends JPanel {
 
@@ -37,6 +36,20 @@ public class GamePanel extends JPanel {
     // วาดบล็อกที่ "ตกถึงพื้นแล้ว" (จาก board.board[])
     drawLandedBlocks(g);
     
+    if (board.isGameOver) {
+      // วาดฉากหลังสีขาวโปร่งแสงทับ
+      g.setColor(new Color(255, 255, 255, 150)); // R, G, B, Alpha (ความใส)
+      g.fillRect(0, 0, getWidth(), getHeight());
+
+      // วาดข้อความ "GAME OVER"
+      g.setColor(Color.RED);
+      String msg = "GAME OVER";
+      
+      // (สูตรคำนวณให้ตัวอักษรอยู่กลางจอ)
+      int stringWidth = g.getFontMetrics().stringWidth(msg);
+      g.drawString(msg, (getWidth() - stringWidth) / 2, getHeight() / 2);
+    }
+
     // วาดบล็อกที่ "กำลังตก" (จาก board.activeShape)
     drawActiveShape(g);
   }
@@ -66,16 +79,25 @@ public class GamePanel extends JPanel {
    */
   private void drawActiveShape(Graphics g) {
     if (board.activeShape != null) {
-      // ใช้สีจากตัว Shape เอง
-      int colorCode = board.activeShape.getBlocks().get(0).color; //
-      g.setColor(getBlockColor(colorCode));
       
-      for (Block block : board.activeShape.getBlocks()) { //
+      // *** ลบ 2 บรรทัดนี้ (ที่อยู่นอกลูป) ทิ้ง ***
+      // int colorCode = board.activeShape.getBlocks().get(0).color;
+      // g.setColor(getBlockColor(colorCode));
+      
+      for (Block block : board.activeShape.getBlocks()) {
+        
+        // *** เพิ่ม 2 บรรทัดนี้ (เข้ามาในลูป) ***
+        // 1. ดึงสีของ "บล็อกก้อนนี้"
+        int colorCode = block.color; //
+        // 2. ตั้งค่าสีก่อนวาด
+        g.setColor(getBlockColor(colorCode));
+
+        // 3. วาดสีทับ (Fill)
         g.fillRect(block.col * BLOCK_SIZE, block.row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE); //
         
         // (เสริม) วาดขอบ
-        g.setColor(Color.WHITE);
-        g.drawRect(block.col * BLOCK_SIZE, block.row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE); //
+        g.setColor(Color.WHITE); // 4. เปลี่ยนเป็นสีขาว
+        g.drawRect(block.col * BLOCK_SIZE, block.row * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE); // 5. วาดขอบ
       }
     }
   }
@@ -94,4 +116,5 @@ public class GamePanel extends JPanel {
       default -> Color.BLACK; // สี Default (สำหรับ 0)
     };
   }
+
 }
