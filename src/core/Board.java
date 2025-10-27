@@ -44,52 +44,6 @@ public class Board {
     System.out.print(sb.toString());
   }
 
-  public synchronized void updatePhysics() {
-    if (activeShape != null) {
-      // Check if shape can move down
-      boolean canMoveDown = true;
-      for (Block block : activeShape.getBlocks()) {
-        int nextRow = block.row + 1;
-        int currentCol = block.col;
-        
-        // Check bottom boundary
-        if (nextRow >= row) {
-          canMoveDown = false;
-          break;
-        }
-        
-        // Check collision with locked blocks
-        int nextIndex = nextRow * col + currentCol;
-        if (board[nextIndex] != 0) {
-          canMoveDown = false;
-          break;
-        }
-      }
-
-      if (canMoveDown) {
-        activeShape.moveDown();
-      } else {
-        // Shape has landed - lock it to the board
-        for (Block block : activeShape.getBlocks()) {
-          int index = block.row * col + block.col;
-          if (index >= 0 && index < board.length) {
-            board[index] = block.color;
-          }
-        }
-        activeShape = null;
-      }
-    }
-
-    if (activeShape == null) spawnRandomShape();
-  }
-  
-  // Spawn a random shape at the top
-  public void spawnRandomShape() {
-    int startCol = col / 2;
-    Shape newShape = createRandomShape(0, startCol);
-    activeShape = newShape;
-  }
-  
   private Shape createRandomShape(int row, int col) {
     int shapeType = random.nextInt(7);
     int color = random.nextInt(4) + 1;
@@ -155,4 +109,98 @@ public class Board {
       active.rotate();
     }
   }
+
+  public synchronized void updatePhysics() {
+
+    // --- ส่วนที่ 1: จัดการตัวที่กำลังตก ---
+    if (activeShape != null) {
+      // Check if shape can move down
+      boolean canMoveDown = true;
+      for (Block block : activeShape.getBlocks()) {
+        int nextRow = block.row + 1;
+        int currentCol = block.col;
+        
+        // Check bottom boundary
+        if (nextRow >= row) {
+          canMoveDown = false;
+          break;
+        }
+        
+        // Check collision with locked blocks
+        int nextIndex = nextRow * col + currentCol;
+        if (board[nextIndex] != 0) {
+          canMoveDown = false;
+          break;
+        }
+      }
+
+      if (canMoveDown) {
+        activeShape.moveDown();
+      } else {
+        // --- ส่วนที่ 2: บล็อกตกถึงพื้น (Landed) ---
+
+        // Shape has landed - lock it to the board
+        for (Block block : activeShape.getBlocks()) {
+          int index = block.row * col + block.col;
+          if (index >= 0 && index < board.length) {
+            board[index] = block.color;
+          }
+        }
+        activeShape = null; // ลบตัวที่กำลังตกทิ้ง
+        checkAndClearLines(); // <--- เรียกเมธอดใหม่ที่เราเพิ่งเพิ่ม
+      }
+    }
+
+    if (activeShape == null) spawnRandomShape();
+  }
+  
+  // Spawn a random shape at the top
+  public void spawnRandomShape() {
+    int startCol = col / 2;
+    Shape newShape = createRandomShape(0, startCol);
+    activeShape = newShape;
+  }
+
+  private void checkAndClearLines() {
+    // วนลูปจากแถวล่างสุด (row - 1) ขึ้นไปบนสุด (0)
+    for (int r = row - 1; r >= 0; r--) {
+      boolean isFull = true;
+      
+      // เช็กว่าแถว 'r' เต็มหรือไม่
+      for (int c = 0; c < col; c++) {
+        if (board[r * col + c] == 0) { // ถ้าเจอช่องว่าง (0)
+          isFull = false;
+          break; // ไปเช็กแถวถัดไปได้เลย
+        }
+      }
+      
+      // ถ้า isFull ยังเป็น true แปลว่าแถวนี้เต็ม
+      if (isFull) {
+        // ลบแถวนี้ และเลื่อนทุกอย่างลงมา
+        clearRowAndShiftDown(r);
+        
+        // สำคัญมาก: เพราะเราเลื่อนแถว r-1 ลงมาที่ r
+        // เราต้องเช็กแถว 'r' (ที่เพิ่งเลื่อนลงมาใหม่) อีกครั้ง
+        // เราเลย r++ เพื่อ "หักล้าง" กับ r-- ใน for-loop
+        r++;
+      }
+    }
+  }
+  
+  private void clearRowAndShiftDown(int rowToClear) {
+    // วนลูปตั้งแต่แถวที่จะลบ ขึ้นไปจนถึงแถวที่ 1
+    for (int r = rowToClear; r > 0; r--) {
+      for (int c = 0; c < col; c++) {
+        // คัดลอกข้อมูลจากแถว "ข้างบน" (r-1) ลงมาทับแถวปัจจุบัน (r)
+        board[r * col + c] = board[(r - 1) * col + c];
+      }
+    }
+    
+    // แถวบนสุด (แถว 0) จะต้องว่างเปล่าเสมอ
+    for (int c = 0; c < col; c++) {
+      board[0 * col + c] = 0; // 0 = empty
+    }
+  }
+
+  
 }
