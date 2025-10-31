@@ -12,39 +12,40 @@ public class Board {
   public Shape activeShape = null;
   private final Random random = new Random();
 
-  private char colorChar(int val) {
-      return switch (val) {
-          case 1 -> 'R';
-          case 2 -> 'G';
-          case 3 -> 'B';
-          case 4 -> 'Y';
-          default -> '.';
-      };
-  }
+  // Terminal Version
+  // private char colorChar(int val) {
+  //     return switch (val) {
+  //         case 1 -> 'R';
+  //         case 2 -> 'G';
+  //         case 3 -> 'B';
+  //         case 4 -> 'Y';
+  //         default -> '.';
+  //     };
+  // }
 
-  public synchronized void printBoard() {
-    // Create a temporary board for rendering
-    int[] displayBoard = board.clone();
+  // public synchronized void printBoard() {
+  //   // Create a temporary board for rendering
+  //   int[] displayBoard = board.clone();
     
-    // Add active shapes to display
-    if (activeShape != null && activeShape.isActive()) {
-      for (Block block : activeShape.getBlocks()) {
-        int index = block.row * col + block.col;
-        if (index >= 0 && index < displayBoard.length) {
-          displayBoard[index] = block.color;
-        }
-      }
-    }
+  //   // Add active shapes to display
+  //   if (activeShape != null && activeShape.isActive()) {
+  //     for (Block block : activeShape.getBlocks()) {
+  //       int index = block.row * col + block.col;
+  //       if (index >= 0 && index < displayBoard.length) {
+  //         displayBoard[index] = block.color;
+  //       }
+  //     }
+  //   }
     
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < displayBoard.length; i++) {
-      sb.append(colorChar(displayBoard[i]));
-      if (i % col == col - 1) sb.append('\n');
-    }
-    System.out.print("\033[H\033[2J");
-    System.out.flush();
-    System.out.print(sb.toString());
-  }
+  //   StringBuilder sb = new StringBuilder();
+  //   for (int i = 0; i < displayBoard.length; i++) {
+  //     sb.append(colorChar(displayBoard[i]));
+  //     if (i % col == col - 1) sb.append('\n');
+  //   }
+  //   System.out.print("\033[H\033[2J");
+  //   System.out.flush();
+  //   System.out.print(sb.toString());
+  // }
 
   private Shape createRandomShape(int row, int col) {
     int shapeType = random.nextInt(7);
@@ -63,43 +64,34 @@ public class Board {
 
  public synchronized void controlMove(int direction) {
 
-    if (activeShape == null) return; // ไม่มีตัวให้ขยับ
+    if (activeShape == null) return;
 
-    // 1. สร้าง Flag เช็กว่าขยับได้ไหม
     boolean canMoveHorizontal = true;
 
-    // 2. Loop เช็กทุกก้อน Block ใน Shape นั้น
     for (Block block : activeShape.getBlocks()) {
-      int nextCol = block.col + direction; // ตำแหน่งคอลัมน์ใหม่ที่จะไป
+      int nextCol = block.col + direction;
       int currentRow = block.row;
 
-      // --- ทำการเช็ก 3 อย่าง ---
-
-      // CHECK 1: ชนขอบซ้ายหรือไม่?
       if (nextCol < 0) {
         canMoveHorizontal = false;
-        break; // หยุดเช็ก (เจอตัวชนแล้ว)
+        break; 
       }
 
-      // CHECK 2: ชนขอบขวาหรือไม่?
-      if (nextCol >= col) { // 'col' คือความกว้าง (10), index ที่ valid คือ 0-9
+      if (nextCol >= col) { 
         canMoveHorizontal = false;
-        break; // หยุดเช็ก
+        break; 
       }
 
-      // CHECK 3: ชนบล็อกอื่นที่ค้างอยู่หรือไม่?
-      // (เช็กเฉพาะบล็อกที่อยู่บนกระดานแล้วเท่านั้น)
       if (currentRow >= 0) { 
         int nextIndex = currentRow * col + nextCol;
-        // เช็กว่า index ไม่ล้น และ ช่องนั้นมีบล็อกอยู่ ( != 0 )
+        
         if (nextIndex >= 0 && nextIndex < board.length && board[nextIndex] != 0) {
           canMoveHorizontal = false;
-          break; // หยุดเช็ก
+          break; 
         }
       }
-    } // สิ้นสุด for loop
+    } 
 
-    // 3. ถ้าเช็กทุกก้อนแล้ว "canMoveHorizontal" ยังเป็น true = ขยับได้
     if (canMoveHorizontal) {
       activeShape.moveHorizontal(direction);
     }
@@ -108,46 +100,30 @@ public class Board {
   public synchronized void controlRotate() {
     if (activeShape == null) return;
     
-    // 1. "ลองหมุน"
-    activeShape.rotate(); //
+    activeShape.rotate(); 
 
-    // 2. "เช็กว่าปลอดภัยไหม"
     if (isPositionValid(activeShape)) {
-      // ปลอดภัย: จบการทำงาน (ปล่อยให้หมุนไป)
       return;
     }
 
-    // 3. "ไม่ปลอดภัย!" (หมุนแล้วชน) 
-    // เราต้อง "หมุนกลับ"
-    // การหมุน 90 องศา (ทวนเข็ม) 3 ครั้ง = หมุน 270 องศา (ทวนเข็ม)
-    // ... ซึ่งเท่ากับหมุน 90 องศา (ตามเข็ม)
-    // นี่คือการ "Undo" การหมุนในข้อ 1 ครับ
-    
-    // หมุนกลับครั้งที่ 1
     activeShape.rotate(); 
-    // หมุนกลับครั้งที่ 2
     activeShape.rotate();
-    // หมุนกลับครั้งที่ 3 (กลับสู่ท่าเดิม)
     activeShape.rotate(); 
   }
 
   public synchronized void updatePhysics() {
 
-    // --- ส่วนที่ 1: จัดการตัวที่กำลังตก ---
     if (activeShape != null) {
-      // Check if shape can move down
       boolean canMoveDown = true;
       for (Block block : activeShape.getBlocks()) {
         int nextRow = block.row + 1;
         int currentCol = block.col;
         
-        // Check bottom boundary
         if (nextRow >= row) {
           canMoveDown = false;
           break;
         }
         
-        // Check collision with locked blocks
         int nextIndex = nextRow * col + currentCol;
         if (board[nextIndex] != 0) {
           canMoveDown = false;
@@ -158,17 +134,14 @@ public class Board {
       if (canMoveDown) {
         activeShape.moveDown();
       } else {
-        // --- ส่วนที่ 2: บล็อกตกถึงพื้น (Landed) ---
-
-        // Shape has landed - lock it to the board
         for (Block block : activeShape.getBlocks()) {
           int index = block.row * col + block.col;
           if (index >= 0 && index < board.length) {
             board[index] = block.color;
           }
         }
-        activeShape = null; // ลบตัวที่กำลังตกทิ้ง
-        checkAndClearLines(); // <--- เรียกเมธอดใหม่ที่เราเพิ่งเพิ่ม
+        activeShape = null; 
+        checkAndClearLines(); 
       }
     }
 
@@ -180,97 +153,80 @@ public class Board {
       int r = block.row;
       int c = block.col;
 
-      // Check 1: ชนขอบซ้าย/ขวา
+     
       if (c < 0 || c >= col) {
         return false;
       }
-      // Check 2: ชนพื้น
+    
       if (r >= row) {
         return false;
       }
-      // Check 3: (กัน index < 0 ตอนอยู่ข้างบน)
+     
       if (r < 0) {
-        continue; // ไม่เป็นไรถ้าอยู่เหนือจอ (แค่ยังไม่วาด)
+        continue; 
       }
       
-      // Check 4: ชนบล็อกที่ล็อคแล้ว
+ 
       if (board[r * col + c] != 0) {
         return false;
       }
     }
-    return true; // ไม่ชนอะไรเลย = Valid
+    return true;
   }
 
-  // Spawn a random shape at the top
   public void spawnRandomShape() {
+
     int startCol = col / 2;
-    Shape newShape = createRandomShape(0, startCol); //
-    
-    // *** นี่คือ Logic เช็ก Game Over ***
-    // เช็กว่าที่ที่จะเกิด (newShape) มัน Valid ไหม
+    Shape newShape = createRandomShape(0, startCol); 
+   
     if (isPositionValid(newShape)) {
-      // ถ้า Valid (ว่าง) : ก็เกิดตามปกติ
-      activeShape = newShape; //
+      activeShape = newShape; 
     } else {
-      // ถ้าไม่ Valid (ชน!) : แพ้!
       isGameOver = true;
-      activeShape = null; // ไม่ต้องเกิดตัวใหม่มา
+      activeShape = null; 
     }
   }
 
   private void checkAndClearLines() {
-    // วนลูปจากแถวล่างสุด (row - 1) ขึ้นไปบนสุด (0)
+
     for (int r = row - 1; r >= 0; r--) {
       boolean isFull = true;
       
-      // เช็กว่าแถว 'r' เต็มหรือไม่
       for (int c = 0; c < col; c++) {
-        if (board[r * col + c] == 0) { // ถ้าเจอช่องว่าง (0)
+        if (board[r * col + c] == 0) { 
           isFull = false;
-          break; // ไปเช็กแถวถัดไปได้เลย
+          break; 
         }
       }
       
-      // ถ้า isFull ยังเป็น true แปลว่าแถวนี้เต็ม
       if (isFull) {
-        // ลบแถวนี้ และเลื่อนทุกอย่างลงมา
         clearRowAndShiftDown(r);
         
-        // สำคัญมาก: เพราะเราเลื่อนแถว r-1 ลงมาที่ r
-        // เราต้องเช็กแถว 'r' (ที่เพิ่งเลื่อนลงมาใหม่) อีกครั้ง
-        // เราเลย r++ เพื่อ "หักล้าง" กับ r-- ใน for-loop
         r++;
       }
     }
   }
   
   private void clearRowAndShiftDown(int rowToClear) {
-    // วนลูปตั้งแต่แถวที่จะลบ ขึ้นไปจนถึงแถวที่ 1
     for (int r = rowToClear; r > 0; r--) {
       for (int c = 0; c < col; c++) {
-        // คัดลอกข้อมูลจากแถว "ข้างบน" (r-1) ลงมาทับแถวปัจจุบัน (r)
         board[r * col + c] = board[(r - 1) * col + c];
       }
     }
     
-    // แถวบนสุด (แถว 0) จะต้องว่างเปล่าเสมอ
     for (int c = 0; c < col; c++) {
-      board[0 * col + c] = 0; // 0 = empty
+      board[0 * col + c] = 0;
     }
   }
 
   public synchronized void resetGame() {
-    // 1. ล้างกระดาน (เติม 0 ทั้งหมด)
+   
     Arrays.fill(board, 0);
-    
-    // 2. เคลียร์ตัวที่ค้าง
+   
     activeShape = null; 
     
-    // 3. รีเซ็ตสถานะแพ้
     isGameOver = false;
     
-    // 4. (เดี๋ยว Game Loop จะเรียก updatePhysics 
-    //    แล้วมันจะ spawn ตัวใหม่ให้เอง)
   }
   
   public boolean isGameRunning() {

@@ -10,6 +10,4 @@ public class Block {
     this.color = color;
   }
 
-  // int getR() {return this.row;}
-  // int getC() {return this.col;}
 }
